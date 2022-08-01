@@ -181,12 +181,12 @@ const Table = ({ loading, initialState, data, onParamsUpdate }: TableProps) => {
     }
   }
   const onPaginationChange = (pagination: PaginationState) => {
-    console.warn(`pagination, ${pagination}`)
-    // const { pageIndex, pageSize } = pagination
-    // onParamsUpdate({
-    //   page: String(pageIndex + 1),
-    //   limit: String(pageSize)
-    // })
+    console.warn(pagination)
+    const { pageIndex, pageSize } = pagination
+    onParamsUpdate({
+      page: String(pageIndex + 1),
+      limit: String(pageSize)
+    })
   }
 
   return (
@@ -264,7 +264,6 @@ export default function DynamicTable () {
   }
 
   const _handleParamsUpdate = (params: QueryParams) => {
-    console.log('new params', params)
     updateQueryParams(params)
     _handleParamsToState()
   }
