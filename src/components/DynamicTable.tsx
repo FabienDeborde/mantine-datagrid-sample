@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo, useLayoutEffect } from 'react'
 import {
   Checkbox,
   ColumnDef,
@@ -15,25 +15,11 @@ import {
   FilterState
 } from 'mantine-datagrid'
 
-import { User } from './types'
+import { QueryParams, User } from './types'
 import { genderFilterFn } from './filters'
-
-import data from '../mock/data.json'
 import { getQueryParams, updateQueryParams } from '../utils'
 
-type QueryParams = {
-  tab?: string;
-  fields?: {
-    key: string;
-    op: string;
-    val: string;
-    meta?: string;
-  }[];
-  sort?: string;
-  order?: string;
-  page: string;
-  limit: string;
-}
+import data from '../mock/data.json'
 
 const INITIAL_PAGE_INDEX = 0
 const INITIAL_PAGE_SIZE = 10
@@ -84,31 +70,33 @@ export default function DynamicTable () {
   const columnHelper = createColumnHelper<User>()
 
   // Set table height
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (containerRef.current) {
-      const pageHeight = window.innerHeight
+      setTimeout(() => {
+        const pageHeight = window.innerHeight
 
-      const container = containerRef.current
-      const coord = container.getBoundingClientRect()
+        const container = containerRef.current
+        const coord = container.getBoundingClientRect()
 
-      const styles = window.getComputedStyle(container)
-      const paddingTop = parseFloat(styles.getPropertyValue('padding-top'))
-      const paddingBottom = parseFloat(styles.getPropertyValue('padding-bottom'))
+        const styles = window.getComputedStyle(container)
+        const paddingTop = parseFloat(styles.getPropertyValue('padding-top'))
+        const paddingBottom = parseFloat(styles.getPropertyValue('padding-bottom'))
 
-      const mainElement = document.querySelector('main.mantine-AppShell-main')
-      const mainStyles = window.getComputedStyle(mainElement)
-      const mainPaddingTop = parseFloat(mainStyles.getPropertyValue('padding-top'))
-      const mainPaddingBottom = parseFloat(mainStyles.getPropertyValue('padding-bottom'))
+        const mainElement = document.querySelector('main.mantine-AppShell-main')
+        const mainStyles = window.getComputedStyle(mainElement)
+        const mainPaddingTop = parseFloat(mainStyles.getPropertyValue('padding-top'))
+        const mainPaddingBottom = parseFloat(mainStyles.getPropertyValue('padding-bottom'))
 
-      const pagination = paginationRef?.current
-      const paginationCoord = pagination?.getBoundingClientRect()
-      const paginationHeight = paginationCoord?.height || 0
+        const pagination = paginationRef?.current
+        const paginationCoord = pagination?.getBoundingClientRect()
+        const paginationHeight = paginationCoord?.height || 0
 
-      const height = pageHeight - coord.top - paddingTop - paddingBottom - mainPaddingTop - mainPaddingBottom - paginationHeight
+        const height = pageHeight - coord.top - paddingTop - paddingBottom - mainPaddingTop - mainPaddingBottom - paginationHeight
 
-      setTableHeight(height)
+        setTableHeight(height)
+      }, 100)
     }
-  }, [paginationRef])
+  }, [containerRef, paginationRef])
 
   const columns: ColumnDef<User>[] = [
     columnHelper.display({
