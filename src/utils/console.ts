@@ -1,11 +1,3 @@
-declare global {
-  interface Console {
-    success: () => void
-    danger: () => void
-    warning: () => void
-  }
-}
-
 const logStyles = [
   'border-radius: 3px',
   'color: white',
@@ -18,14 +10,11 @@ const customizedStyle = (type?: string): string => {
     case 'info':
       style.push('background: #1890FF')
       break
-    case 'success':
-      style.push('background: #52C41A')
+    case 'debug':
+      style.push('background: #550055')
       break
-    case 'danger':
-      style.push('background: #D33F3F')
-      break
-    case 'warning':
-      style.push('background: #FFC82C')
+    case 'warn':
+      style.push('background: #FFC011')
       break
     default:
       style.push('background: #555')
@@ -35,23 +24,18 @@ const customizedStyle = (type?: string): string => {
 }
 
 export const initializeConsole = () => {
-  const _warn = console.warn
   const _log = console.log
-  const _error = console.error
 
+  console.log = (function () {
+    return Function.prototype.bind.call(_log, console, '%cLOG%c', customizedStyle(''), 'color: inherit')
+  }())
   console.debug = (function () {
-    return Function.prototype.bind.call(_log, console, '%cDebug%c', customizedStyle(), 'color: inherit')
+    return Function.prototype.bind.call(_log, console, '%cDebug%c', customizedStyle('debug'), 'color: inherit')
   }())
   console.info = (function () {
     return Function.prototype.bind.call(_log, console, '%cInfo%c', customizedStyle('info'), 'color: inherit')
   }())
-  console.success = (function () {
-    return Function.prototype.bind.call(_log, console, '%cSuccess%c', customizedStyle('success'), 'color: inherit')
-  }())
-  console.danger = (function () {
-    return Function.prototype.bind.call(_error, console, '%cError%c', customizedStyle('danger'), 'color: inherit')
-  }())
-  console.warning = (function () {
-    return Function.prototype.bind.call(_warn, console, '%cWarning%c', customizedStyle('warning'), 'color: inherit')
+  console.warn = (function () {
+    return Function.prototype.bind.call(_log, console, '%cInfo%c', customizedStyle('warn'), 'color: inherit')
   }())
 }
