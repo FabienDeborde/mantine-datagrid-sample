@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useLayoutEffect } from 'react'
+import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react'
 import {
   Checkbox,
   ColumnDef,
@@ -12,62 +12,41 @@ import {
   ColumnFiltersState,
   SortingState,
   PaginationState,
-  FilterState
+  FilterState,
+  InitialGridState
 } from 'mantine-datagrid'
 
 import { QueryParams, User } from './types'
 import { genderFilterFn } from './filters'
 import { getQueryParams, updateQueryParams } from '../utils'
 
-import data from '../mock/data.json'
+import { getUsers } from '../utils/api'
 
 const INITIAL_PAGE_INDEX = 0
 const INITIAL_PAGE_SIZE = 10
 
-export default function DynamicTable () {
+type TableProps = {
+  loading: boolean;
+  initialState: InitialGridState;
+  data: User[];
+  dataLength: number;
+  onParamsUpdate: (params:any) => void;
+}
+
+const Table = ({ loading, initialState, data, dataLength, onParamsUpdate }: TableProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const paginationRef = useRef<HTMLDivElement>(null)
   const [tableHeight, setTableHeight] = useState(0)
 
-  const initialState = useMemo(() => {
-    const params = getQueryParams()
-    console.log(params)
-
-    const { fields, sort, order, page, limit } = params as QueryParams
-
-    const columnFilters = []
-    if (fields) {
-      for (const field of fields) {
-        if (typeof field === 'object') {
-          const { key, op, val, meta } = field
-          let value: string|number|boolean = val
-          if (!Number.isNaN(Number(val))) value = Number(val)
-          if (val === 'true') value = true
-          if (val === 'false') value = false
-
-          columnFilters.push({
-            id: key,
-            value: {
-              operator: op,
-              value,
-              meta
-            }
-          })
-        }
-      }
-    }
-
-    return {
-      sorting: sort && [{ id: sort as string, desc: order === 'desc' }],
-      columnFilters,
-      pagination: page && {
-        pageIndex: Number(page) || INITIAL_PAGE_INDEX,
-        pageSize: Number(limit) || INITIAL_PAGE_SIZE
-      }
-    }
-  }, [])
-
   const columnHelper = createColumnHelper<User>()
+
+  useEffect(() => {
+    console.debug('initialState', initialState)
+  }, [initialState])
+
+  useEffect(() => {
+    console.log('rerender')
+  }, [])
 
   // Set table height
   useLayoutEffect(() => {
@@ -185,18 +164,18 @@ export default function DynamicTable () {
           meta
         })
       }
-      updateQueryParams({ fields })
+      onParamsUpdate({ fields })
     }
   }
   const onSortingChange = (sort: SortingState) => {
     if (sort?.[0]) {
       const { id, desc } = sort[0]
-      updateQueryParams({
+      onParamsUpdate({
         sort: id,
         order: desc ? 'desc' : 'asc'
       })
     } else {
-      updateQueryParams({
+      onParamsUpdate({
         sort: undefined,
         order: undefined
       })
@@ -204,7 +183,7 @@ export default function DynamicTable () {
   }
   const onPaginationChange = (pagination: PaginationState) => {
     const { pageIndex, pageSize } = pagination
-    updateQueryParams({
+    onParamsUpdate({
       page: String(pageIndex + 1),
       limit: String(pageSize)
     })
@@ -212,7 +191,7 @@ export default function DynamicTable () {
 
   return (
     <Datagrid<User>
-      loading={false}
+      loading={loading}
       debug={false}
       columns={columns}
       data={data}
@@ -224,10 +203,11 @@ export default function DynamicTable () {
       withPagination
       withTopPagination={false}
       paginationOptions={{
-        initialPageIndex: INITIAL_PAGE_INDEX,
-        initialPageSize: INITIAL_PAGE_SIZE,
+        initialPageIndex: initialState?.pagination.pageIndex || INITIAL_PAGE_INDEX,
+        initialPageSize: initialState?.pagination.pageSize || INITIAL_PAGE_SIZE,
         pageSizes: ['10', '25', '50', '100', '250', '1000'],
-        position: 'right'
+        position: 'right',
+        rowsCount: dataLength
       }}
       paginationRef={paginationRef}
       withGlobalFilter
@@ -238,6 +218,94 @@ export default function DynamicTable () {
       onColumnFilterChange={onColumnFilterChange}
       onSortingChange={onSortingChange}
       onPaginationChange={onPaginationChange}
+    />
+  )
+}
+
+export default function DynamicTable () {
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState([])
+  const [dataLength, setDataLength] = useState(0)
+  const [initialState, setInitialState] = useState(null)
+
+  const _handleParamsToState = (params: QueryParams): InitialGridState => {
+    const { fields, sort, order, page, limit } = params
+
+    const columnFilters = []
+    if (fields) {
+      for (const field of fields) {
+        if (typeof field === 'object') {
+          const { key, op, val, meta } = field
+          let value: string|number|boolean = val
+          if (!Number.isNaN(Number(val))) value = Number(val)
+          if (val === 'true') value = true
+          if (val === 'false') value = false
+
+          columnFilters.push({
+            id: key,
+            value: {
+              operator: op,
+              value,
+              meta
+            }
+          })
+        }
+      }
+    }
+
+    const state = {
+      sorting: sort && [{ id: sort as string, desc: order === 'desc' }],
+      columnFilters,
+      pagination: page && {
+        pageIndex: Number(page) - 1 || INITIAL_PAGE_INDEX,
+        pageSize: Number(limit) || INITIAL_PAGE_SIZE
+      }
+    }
+    console.debug('converted to', state)
+    return state
+  }
+
+  const _handleParamsUpdate = (params: QueryParams) => {
+    const query = getQueryParams()
+    updateQueryParams(params)
+    fetchData({ ...query, ...params })
+  }
+
+  const fetchData = async (state: QueryParams) => {
+    if (state) {
+      const params = getQueryParams() as QueryParams
+      console.info('fetch data...', params)
+      setLoading(true)
+      const data = await getUsers(params)
+      console.debug('data', data)
+
+      setLoading(false)
+      setData(data.results)
+      setDataLength(data.count)
+    }
+  }
+
+  // Set inital state on page load
+  useEffect(() => {
+    const query = getQueryParams() as QueryParams
+    console.log('initialize state')
+    setInitialState(_handleParamsToState(query))
+  }, [])
+  // Fetch data on page load
+  useEffect(() => {
+    const query = getQueryParams() as QueryParams
+    fetchData(query)
+  }, [])
+
+  if (!initialState) return null
+
+  return (
+    <Table
+      loading={loading}
+      data={data}
+      dataLength={dataLength}
+      initialState={initialState}
+      onParamsUpdate={_handleParamsUpdate}
     />
   )
 }

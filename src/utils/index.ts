@@ -14,15 +14,14 @@ export const getQueryParams = () => {
 
 export const updateQueryParams = (queryParams: Params|Params[]) => {
   const params = getQueryParams() || {}
-  console.log('current params', params)
-  console.log('query params', queryParams)
+  console.log('merge params', params, queryParams)
 
   const queryString = qs.stringify({ ...params, ...queryParams }, {
     encodeValuesOnly: true,
     skipNulls: true,
     allowDots: true
   })
-  console.log('new params', queryString)
+  // console.log('new params', queryString)
 
   const newRelativeQueryPath = `${location.pathname}${queryString.startsWith('?') ? '' : '?'}${queryString}`
   history.pushState(null, '', newRelativeQueryPath)
