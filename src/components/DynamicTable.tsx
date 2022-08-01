@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useLayoutEffect, useCallback } from 'react'
+import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react'
 import {
   Checkbox,
   ColumnDef,
@@ -36,9 +36,12 @@ const Table = ({ loading, initialState, data, onParamsUpdate }: TableProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const paginationRef = useRef<HTMLDivElement>(null)
   const [tableHeight, setTableHeight] = useState(0)
-  console.log('initialState', initialState)
 
   const columnHelper = createColumnHelper<User>()
+
+  useEffect(() => {
+    console.debug('initialState', initialState)
+  }, [initialState])
 
   useEffect(() => {
     console.debug('rerender')
@@ -177,15 +180,14 @@ const Table = ({ loading, initialState, data, onParamsUpdate }: TableProps) => {
       })
     }
   }
-  // const onPaginationChange = (pagination: PaginationState) => {
-  //   console.log('pagination', pagination)
-
-  //   const { pageIndex, pageSize } = pagination
-  //   onParamsUpdate({
-  //     page: String(pageIndex + 1),
-  //     limit: String(pageSize)
-  //   })
-  // }
+  const onPaginationChange = (pagination: PaginationState) => {
+    console.warn(`pagination, ${pagination}`)
+    // const { pageIndex, pageSize } = pagination
+    // onParamsUpdate({
+    //   page: String(pageIndex + 1),
+    //   limit: String(pageSize)
+    // })
+  }
 
   return (
     <Datagrid<User>
@@ -201,8 +203,8 @@ const Table = ({ loading, initialState, data, onParamsUpdate }: TableProps) => {
       withPagination
       withTopPagination={false}
       paginationOptions={{
-        initialPageIndex: INITIAL_PAGE_INDEX,
-        initialPageSize: INITIAL_PAGE_SIZE,
+        initialPageIndex: initialState?.pagination.pageIndex || INITIAL_PAGE_INDEX,
+        initialPageSize: initialState?.pagination.pageSize || INITIAL_PAGE_SIZE,
         pageSizes: ['10', '25', '50', '100', '250', '1000'],
         position: 'right'
       }}
@@ -214,7 +216,7 @@ const Table = ({ loading, initialState, data, onParamsUpdate }: TableProps) => {
       // virtualizedRowOverscan={25}
       onColumnFilterChange={onColumnFilterChange}
       onSortingChange={onSortingChange}
-      // onPaginationChange={onPaginationChange}
+      onPaginationChange={onPaginationChange}
     />
   )
 }
@@ -258,8 +260,6 @@ export default function DynamicTable () {
         pageSize: Number(limit) || INITIAL_PAGE_SIZE
       }
     }
-    console.log('state', state)
-
     setInitialState(state)
   }
 
