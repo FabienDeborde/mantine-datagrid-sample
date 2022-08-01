@@ -30,7 +30,7 @@ export const getUsers = (params: QueryParams): Promise<UserResponse> => {
 
     if (page && limit) {
       const end = Number(page) * Number(limit)
-      const start = end - Number(limit) + 1
+      const start = end - Number(limit)
       const paginated = results.slice(start, end)
       results = [...paginated]
     }
@@ -40,6 +40,6 @@ export const getUsers = (params: QueryParams): Promise<UserResponse> => {
         results,
         count
       })
-    }, 2000)
+    }, 300)
   })
 }
