@@ -1,26 +1,45 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import {
+  ColorScheme,
+  ColorSchemeProvider,
+  DefaultMantineColor,
+  MantineProvider
+} from '@mantine/core'
+import { useHotkeys, useLocalStorage } from '@mantine/hooks'
 
-function App() {
+import { theme } from './theme'
+
+import Main from './Main'
+import Layout from './components/Layout'
+
+function App () {
+  const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({
+    key: 'mantine-color-scheme',
+    defaultValue: 'light',
+    getInitialValueInEffect: true
+  })
+  const [primaryColor, setPrimaryColor] = useLocalStorage<DefaultMantineColor>({
+    key: 'mantine-primary-color',
+    defaultValue: 'blue',
+    getInitialValueInEffect: true
+  })
+  const toggleColorScheme = () => setColorScheme(current => current === 'dark' ? 'light' : 'dark')
+
+  useHotkeys([['mod+J', toggleColorScheme]])
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+    <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
+      <MantineProvider theme={{ ...theme, primaryColor, colorScheme }} withNormalizeCSS>
+        <Layout
+          colorScheme={colorScheme}
+          toggleColorScheme={toggleColorScheme}
+          primaryColor={primaryColor}
+          setPrimaryColor={setPrimaryColor}
         >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+          <Main />
+        </Layout>
+      </MantineProvider>
+    </ColorSchemeProvider>
+  )
 }
 
-export default App;
+export default App
