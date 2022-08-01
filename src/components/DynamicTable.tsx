@@ -20,7 +20,7 @@ import { QueryParams, User } from './types'
 import { genderFilterFn } from './filters'
 import { getQueryParams, updateQueryParams } from '../utils'
 
-import jsonData from '../mock/data.json'
+import { getUsers } from '../utils/api'
 
 const INITIAL_PAGE_INDEX = 0
 const INITIAL_PAGE_SIZE = 10
@@ -29,10 +29,11 @@ type TableProps = {
   loading: boolean;
   initialState: InitialGridState;
   data: User[];
+  dataLength: number;
   onParamsUpdate: (params:any) => void;
 }
 
-const Table = ({ loading, initialState, data, onParamsUpdate }: TableProps) => {
+const Table = ({ loading, initialState, data, dataLength, onParamsUpdate }: TableProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const paginationRef = useRef<HTMLDivElement>(null)
   const [tableHeight, setTableHeight] = useState(0)
@@ -44,7 +45,7 @@ const Table = ({ loading, initialState, data, onParamsUpdate }: TableProps) => {
   }, [initialState])
 
   useEffect(() => {
-    console.debug('rerender')
+    console.log('rerender')
   }, [])
 
   // Set table height
@@ -181,7 +182,6 @@ const Table = ({ loading, initialState, data, onParamsUpdate }: TableProps) => {
     }
   }
   const onPaginationChange = (pagination: PaginationState) => {
-    console.warn(pagination)
     const { pageIndex, pageSize } = pagination
     onParamsUpdate({
       page: String(pageIndex + 1),
@@ -206,7 +206,8 @@ const Table = ({ loading, initialState, data, onParamsUpdate }: TableProps) => {
         initialPageIndex: initialState?.pagination.pageIndex || INITIAL_PAGE_INDEX,
         initialPageSize: initialState?.pagination.pageSize || INITIAL_PAGE_SIZE,
         pageSizes: ['10', '25', '50', '100', '250', '1000'],
-        position: 'right'
+        position: 'right',
+        rowsCount: dataLength
       }}
       paginationRef={paginationRef}
       withGlobalFilter
@@ -224,11 +225,11 @@ const Table = ({ loading, initialState, data, onParamsUpdate }: TableProps) => {
 export default function DynamicTable () {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState([])
+  const [dataLength, setDataLength] = useState(0)
   const [initialState, setInitialState] = useState(null)
 
-  const _handleParamsToState = () => {
-    const params = getQueryParams()
-    const { fields, sort, order, page, limit } = params as QueryParams
+  const _handleParamsToState = (params: QueryParams): InitialGridState => {
+    const { fields, sort, order, page, limit } = params
 
     const columnFilters = []
     if (fields) {
@@ -260,35 +261,41 @@ export default function DynamicTable () {
         pageSize: Number(limit) || INITIAL_PAGE_SIZE
       }
     }
-    setInitialState(state)
+    console.debug('converted to', state)
+    return state
   }
 
   const _handleParamsUpdate = (params: QueryParams) => {
+    const query = getQueryParams()
     updateQueryParams(params)
-    _handleParamsToState()
+    fetchData({ ...query, ...params })
   }
 
-  const fetchData = useCallback(
-    () => {
-      if (initialState) {
-        console.info('fetch data...')
-        setLoading(true)
-        setTimeout(() => {
-          setLoading(false)
-          setData(jsonData)
-        }, 1000)
-      }
-    },
-    [initialState]
-  )
+  const fetchData = async (state: QueryParams) => {
+    if (state) {
+      const params = getQueryParams() as QueryParams
+      console.info('fetch data...', params)
+      setLoading(true)
+      const data = await getUsers(params)
+      console.debug('data', data)
 
+      setLoading(false)
+      setData(data.results)
+      setDataLength(data.count)
+    }
+  }
+
+  // Set inital state on page load
   useEffect(() => {
-    _handleParamsToState()
+    const query = getQueryParams() as QueryParams
+    console.log('initialize state')
+    setInitialState(_handleParamsToState(query))
   }, [])
-
+  // Fetch data on page load
   useEffect(() => {
-    fetchData()
-  }, [initialState])
+    const query = getQueryParams() as QueryParams
+    fetchData(query)
+  }, [])
 
   if (!initialState) return null
 
@@ -296,6 +303,7 @@ export default function DynamicTable () {
     <Table
       loading={loading}
       data={data}
+      dataLength={dataLength}
       initialState={initialState}
       onParamsUpdate={_handleParamsUpdate}
     />
