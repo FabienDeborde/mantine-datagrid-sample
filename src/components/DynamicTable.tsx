@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react'
+import { useEffect, useRef, useState, useLayoutEffect, useCallback, useMemo } from 'react'
 import {
   Checkbox,
   ColumnDef,
@@ -29,11 +29,12 @@ type TableProps = {
   loading: boolean;
   initialState: InitialGridState;
   data: User[];
-  dataLength: number;
+  rowsCount: number;
+  pageCount: number;
   onParamsUpdate: (params:any) => void;
 }
 
-const Table = ({ loading, initialState, data, dataLength, onParamsUpdate }: TableProps) => {
+const Table = ({ loading, initialState, data, rowsCount, pageCount, onParamsUpdate }: TableProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const paginationRef = useRef<HTMLDivElement>(null)
   const [tableHeight, setTableHeight] = useState(0)
@@ -42,6 +43,7 @@ const Table = ({ loading, initialState, data, dataLength, onParamsUpdate }: Tabl
 
   useEffect(() => {
     console.debug('initialState', initialState)
+    console.debug('pageCount', pageCount)
   }, [initialState])
 
   useEffect(() => {
@@ -207,7 +209,9 @@ const Table = ({ loading, initialState, data, dataLength, onParamsUpdate }: Tabl
         initialPageSize: initialState?.pagination.pageSize || INITIAL_PAGE_SIZE,
         pageSizes: ['10', '25', '50', '100', '250', '1000'],
         position: 'right',
-        rowsCount: dataLength
+        manualPagination: true,
+        rowsCount,
+        pageCount
       }}
       paginationRef={paginationRef}
       withGlobalFilter
@@ -226,7 +230,7 @@ export default function DynamicTable () {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState([])
   const [dataLength, setDataLength] = useState(0)
-  const [initialState, setInitialState] = useState(null)
+  const [initialState, setInitialState] = useState<InitialGridState>(null)
 
   const _handleParamsToState = (params: QueryParams): InitialGridState => {
     const { fields, sort, order, page, limit } = params
@@ -303,7 +307,8 @@ export default function DynamicTable () {
     <Table
       loading={loading}
       data={data}
-      dataLength={dataLength}
+      rowsCount={dataLength}
+      pageCount={Math.ceil(data?.length / initialState?.pagination.pageSize)}
       initialState={initialState}
       onParamsUpdate={_handleParamsUpdate}
     />
