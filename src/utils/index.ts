@@ -14,7 +14,7 @@ export const getQueryParams = () => {
 
 export const updateQueryParams = (queryParams: Params|Params[]) => {
   const params = getQueryParams() || {}
-  console.log('merge params', params, queryParams)
+  // console.log('merge params', params, queryParams)
 
   const queryString = qs.stringify({ ...params, ...queryParams }, {
     encodeValuesOnly: true,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react'
+import { useEffect, useRef, useState, useLayoutEffect } from 'react'
 import {
   Checkbox,
   ColumnDef,
@@ -24,29 +24,26 @@ import { getUsers } from '../utils/api'
 
 const INITIAL_PAGE_INDEX = 0
 const INITIAL_PAGE_SIZE = 10
+const DEFAULT_QUERY_PARAMS = {
+  page: String(INITIAL_PAGE_INDEX + 1),
+  limit: String(INITIAL_PAGE_SIZE)
+}
 
 type TableProps = {
   loading: boolean;
   initialState: InitialGridState;
   data: User[];
-  dataLength: number;
+  rowsCount: number;
+  pageCount: number;
   onParamsUpdate: (params:any) => void;
 }
 
-const Table = ({ loading, initialState, data, dataLength, onParamsUpdate }: TableProps) => {
+const Table = ({ loading, initialState, data, rowsCount, pageCount, onParamsUpdate }: TableProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const paginationRef = useRef<HTMLDivElement>(null)
   const [tableHeight, setTableHeight] = useState(0)
 
   const columnHelper = createColumnHelper<User>()
-
-  useEffect(() => {
-    console.debug('initialState', initialState)
-  }, [initialState])
-
-  useEffect(() => {
-    console.log('rerender')
-  }, [])
 
   // Set table height
   useLayoutEffect(() => {
@@ -148,7 +145,7 @@ const Table = ({ loading, initialState, data, dataLength, onParamsUpdate }: Tabl
     console.log('clicked row', row)
   }
   const onRowSelection = (selection: RowSelectionState) => {
-    // console.log('selected rows', selection)
+    console.log('selected rows', selection)
   }
 
   const onColumnFilterChange = (filters: ColumnFiltersState) => {
@@ -203,11 +200,13 @@ const Table = ({ loading, initialState, data, dataLength, onParamsUpdate }: Tabl
       withPagination
       withTopPagination={false}
       paginationOptions={{
-        initialPageIndex: initialState?.pagination.pageIndex || INITIAL_PAGE_INDEX,
-        initialPageSize: initialState?.pagination.pageSize || INITIAL_PAGE_SIZE,
+        initialPageIndex: initialState?.pagination?.pageIndex || INITIAL_PAGE_INDEX,
+        initialPageSize: initialState?.pagination?.pageSize || INITIAL_PAGE_SIZE,
         pageSizes: ['10', '25', '50', '100', '250', '1000'],
         position: 'right',
-        rowsCount: dataLength
+        manualPagination: true,
+        rowsCount,
+        pageCount
       }}
       paginationRef={paginationRef}
       withGlobalFilter
@@ -226,7 +225,7 @@ export default function DynamicTable () {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState([])
   const [dataLength, setDataLength] = useState(0)
-  const [initialState, setInitialState] = useState(null)
+  const [initialState, setInitialState] = useState<InitialGridState>(null)
 
   const _handleParamsToState = (params: QueryParams): InitialGridState => {
     const { fields, sort, order, page, limit } = params
@@ -256,12 +255,11 @@ export default function DynamicTable () {
     const state = {
       sorting: sort && [{ id: sort as string, desc: order === 'desc' }],
       columnFilters,
-      pagination: page && {
+      pagination: {
         pageIndex: Number(page) - 1 || INITIAL_PAGE_INDEX,
         pageSize: Number(limit) || INITIAL_PAGE_SIZE
       }
     }
-    console.debug('converted to', state)
     return state
   }
 
@@ -271,14 +269,10 @@ export default function DynamicTable () {
     fetchData({ ...query, ...params })
   }
 
-  const fetchData = async (state: QueryParams) => {
-    if (state) {
-      const params = getQueryParams() as QueryParams
-      console.info('fetch data...', params)
+  const fetchData = async (params: QueryParams) => {
+    if (params) {
       setLoading(true)
-      const data = await getUsers(params)
-      console.debug('data', data)
-
+      const data = await getUsers({ ...DEFAULT_QUERY_PARAMS, ...params })
       setLoading(false)
       setData(data.results)
       setDataLength(data.count)
@@ -288,9 +282,9 @@ export default function DynamicTable () {
   // Set inital state on page load
   useEffect(() => {
     const query = getQueryParams() as QueryParams
-    console.log('initialize state')
     setInitialState(_handleParamsToState(query))
   }, [])
+
   // Fetch data on page load
   useEffect(() => {
     const query = getQueryParams() as QueryParams
@@ -303,7 +297,8 @@ export default function DynamicTable () {
     <Table
       loading={loading}
       data={data}
-      dataLength={dataLength}
+      rowsCount={dataLength}
+      pageCount={Math.ceil(data?.length / (initialState?.pagination?.pageSize || INITIAL_PAGE_SIZE))}
       initialState={initialState}
       onParamsUpdate={_handleParamsUpdate}
     />
