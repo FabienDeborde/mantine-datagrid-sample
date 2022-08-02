@@ -20,8 +20,8 @@ export type QueryParams = {
   }[];
   sort?: string;
   order?: string;
-  page: string;
-  limit: string;
+  page?: string;
+  limit?: string;
 }
 
 export type TabProps = {
