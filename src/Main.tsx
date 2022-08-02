@@ -20,7 +20,11 @@ export default function Main () {
 
   const _handleTabChange = (tab: string) => {
     setActiveTab(tab)
-    updateQueryParams({ [TAB_KEY]: tab })
+    updateQueryParams({
+      [TAB_KEY]: tab,
+      page: undefined,
+      limit: undefined
+    })
   }
 
   return (
@@ -30,10 +34,10 @@ export default function Main () {
         <Tabs.Tab value="dynamic" icon={<AccessPoint size={14} />}>Dynamic</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="static" pt="sm">
-        <StaticTable />
+        <StaticTable active={activeTab === 'static'} />
       </Tabs.Panel>
       <Tabs.Panel value="dynamic" pt="sm">
-        <DynamicTable />
+        <DynamicTable active={activeTab === 'dynamic'} />
       </Tabs.Panel>
     </Tabs>
   )

@@ -23,3 +23,7 @@ export type QueryParams = {
   page: string;
   limit: string;
 }
+
+export type TabProps = {
+  active: boolean;
+}
