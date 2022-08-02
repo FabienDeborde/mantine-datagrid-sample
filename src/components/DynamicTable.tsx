@@ -16,7 +16,7 @@ import {
   InitialGridState
 } from 'mantine-datagrid'
 
-import { QueryParams, User } from './types'
+import { QueryParams, TabProps, User } from './types'
 import { genderFilterFn } from './filters'
 import { getQueryParams, updateQueryParams } from '../utils'
 
@@ -221,7 +221,7 @@ const Table = ({ loading, initialState, data, rowsCount, pageCount, onParamsUpda
   )
 }
 
-export default function DynamicTable () {
+export default function DynamicTable ({ active }: TabProps) {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState([])
   const [dataLength, setDataLength] = useState(0)
@@ -291,7 +291,7 @@ export default function DynamicTable () {
     fetchData(query)
   }, [])
 
-  if (!initialState) return null
+  if (!initialState || !active) return null
 
   return (
     <Table
