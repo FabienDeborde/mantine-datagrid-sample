@@ -13,10 +13,10 @@ import {
   SortingState,
   PaginationState,
   FilterState,
-  InitialGridState
-} from 'mantine-datagrid'
+  GridState
+} from '@fabiendeborde/mantine-datagrid'
 
-import { QueryParams, TabProps, User } from './types'
+import { QueryParams, User } from './types'
 import { genderFilterFn } from './filters'
 import { getQueryParams, updateQueryParams } from '../utils'
 
@@ -29,21 +29,81 @@ const DEFAULT_QUERY_PARAMS = {
   limit: String(INITIAL_PAGE_SIZE)
 }
 
-type TableProps = {
-  loading: boolean;
-  initialState: InitialGridState;
-  data: User[];
-  rowsCount: number;
-  pageCount: number;
-  onParamsUpdate: (params:any) => void;
-}
-
-const Table = ({ loading, initialState, data, rowsCount, pageCount, onParamsUpdate }: TableProps) => {
+export default function DynamicTable () {
   const containerRef = useRef<HTMLDivElement>(null)
   const paginationRef = useRef<HTMLDivElement>(null)
   const [tableHeight, setTableHeight] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState([])
+  const [dataLength, setDataLength] = useState(0)
+  const [pagination, setPagination] = useState<PaginationState>()
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>()
+  const [sorting, setSorting] = useState<SortingState>()
 
-  const columnHelper = createColumnHelper<User>()
+  const _handleParamsToState = (params: QueryParams): GridState => {
+    const { fields, sort, order, page, limit } = params
+
+    const pageIndex = Number(page) ? Number(page) - 1 : 0
+    const pageSize = Number(limit)
+
+    const columnFilters = []
+    if (fields) {
+      for (const field of fields) {
+        if (typeof field === 'object') {
+          const { key, op, val, meta } = field
+          let value: string|number|boolean = val
+          if (!Number.isNaN(Number(val))) value = Number(val)
+          if (val === 'true') value = true
+          if (val === 'false') value = false
+
+          columnFilters.push({
+            id: key,
+            value: {
+              operator: op,
+              value,
+              meta
+            }
+          })
+        }
+      }
+    }
+
+    const state = {
+      sorting: sort && [{ id: sort as string, desc: order === 'desc' }],
+      columnFilters,
+      pagination: {
+        pageIndex: pageIndex || INITIAL_PAGE_INDEX,
+        pageSize: pageSize || INITIAL_PAGE_SIZE
+      }
+    }
+    return state
+  }
+
+  const _handleParamsUpdate = (params: QueryParams) => {
+    const query = getQueryParams()
+    updateQueryParams(params)
+    fetchData({ ...query, ...params })
+  }
+
+  const fetchData = async (params: QueryParams) => {
+    if (params) {
+      setLoading(true)
+      const data = await getUsers({ ...DEFAULT_QUERY_PARAMS, ...params })
+      setLoading(false)
+      setData(data.results)
+      setDataLength(data.count)
+    }
+  }
+
+  // Set inital state on page load & fetch data
+  useEffect(() => {
+    const query = getQueryParams() as QueryParams
+    const state = _handleParamsToState(query)
+    setPagination(state.pagination)
+    setColumnFilters(state.columnFilters)
+    setSorting(state.sorting)
+    fetchData(query)
+  }, [])
 
   // Set table height
   useLayoutEffect(() => {
@@ -74,6 +134,7 @@ const Table = ({ loading, initialState, data, rowsCount, pageCount, onParamsUpda
     }
   }, [containerRef, paginationRef])
 
+  const columnHelper = createColumnHelper<User>()
   const columns: ColumnDef<User>[] = [
     columnHelper.display({
       id: 'select',
@@ -142,13 +203,13 @@ const Table = ({ loading, initialState, data, rowsCount, pageCount, onParamsUpda
   ]
 
   const onRowClick = (row: User) => {
-    console.log('clicked row', row)
+    // console.log('clicked row', row)
   }
   const onRowSelection = (selection: RowSelectionState) => {
-    console.log('selected rows', selection)
+    // console.log('selected rows', selection)
   }
-
   const onColumnFilterChange = (filters: ColumnFiltersState) => {
+    setColumnFilters(filters)
     const fields = []
     if (filters) {
       for (let index = 0; index < filters.length; index++) {
@@ -161,29 +222,39 @@ const Table = ({ loading, initialState, data, rowsCount, pageCount, onParamsUpda
           meta
         })
       }
-      onParamsUpdate({ fields })
+      _handleParamsUpdate({ fields })
     }
   }
   const onSortingChange = (sort: SortingState) => {
+    setSorting(sort)
     if (sort?.[0]) {
       const { id, desc } = sort[0]
-      onParamsUpdate({
+      _handleParamsUpdate({
         sort: id,
         order: desc ? 'desc' : 'asc'
       })
     } else {
-      onParamsUpdate({
+      _handleParamsUpdate({
         sort: undefined,
         order: undefined
       })
     }
   }
-  const onPaginationChange = (pagination: PaginationState) => {
-    const { pageIndex, pageSize } = pagination
-    onParamsUpdate({
-      page: String(pageIndex + 1),
-      limit: String(pageSize)
-    })
+  const onPaginationChange = (state: PaginationState) => {
+    const { pageIndex, pageSize } = state
+
+    if (pagination.pageIndex !== pageIndex || pagination.pageSize !== pageSize) {
+      const nextPagination = {
+        pageIndex: pageSize !== pagination.pageSize ? 0 : pageIndex,
+        pageSize
+      }
+      setPagination(nextPagination)
+
+      _handleParamsUpdate({
+        page: String(pageSize !== pagination.pageSize ? 1 : pageIndex + 1),
+        limit: String(pageSize)
+      })
+    }
   }
 
   return (
@@ -192,21 +263,25 @@ const Table = ({ loading, initialState, data, rowsCount, pageCount, onParamsUpda
       debug={false}
       columns={columns}
       data={data}
-      initialGridState={initialState}
+      gridState={{
+        pagination,
+        columnFilters,
+        sorting
+      }}
       onRowClick={onRowClick}
       containerStyle={{}}
       containerRef={containerRef}
       containerMaxHeight={tableHeight}
+      manualPagination
       withPagination
       withTopPagination={false}
       paginationOptions={{
-        initialPageIndex: initialState?.pagination?.pageIndex || INITIAL_PAGE_INDEX,
-        initialPageSize: initialState?.pagination?.pageSize || INITIAL_PAGE_SIZE,
+        initialPageIndex: 0,
+        initialPageSize: 10,
         pageSizes: ['10', '25', '50', '100', '250', '1000'],
         position: 'right',
-        manualPagination: true,
-        rowsCount,
-        pageCount
+        rowsCount: dataLength,
+        pageCount: Math.ceil(dataLength / (pagination?.pageSize || INITIAL_PAGE_SIZE))
       }}
       paginationRef={paginationRef}
       withGlobalFilter
@@ -217,90 +292,6 @@ const Table = ({ loading, initialState, data, rowsCount, pageCount, onParamsUpda
       onColumnFilterChange={onColumnFilterChange}
       onSortingChange={onSortingChange}
       onPaginationChange={onPaginationChange}
-    />
-  )
-}
-
-export default function DynamicTable ({ active }: TabProps) {
-  const [loading, setLoading] = useState(true)
-  const [data, setData] = useState([])
-  const [dataLength, setDataLength] = useState(0)
-  const [initialState, setInitialState] = useState<InitialGridState>(null)
-
-  const _handleParamsToState = (params: QueryParams): InitialGridState => {
-    const { fields, sort, order, page, limit } = params
-
-    const columnFilters = []
-    if (fields) {
-      for (const field of fields) {
-        if (typeof field === 'object') {
-          const { key, op, val, meta } = field
-          let value: string|number|boolean = val
-          if (!Number.isNaN(Number(val))) value = Number(val)
-          if (val === 'true') value = true
-          if (val === 'false') value = false
-
-          columnFilters.push({
-            id: key,
-            value: {
-              operator: op,
-              value,
-              meta
-            }
-          })
-        }
-      }
-    }
-
-    const state = {
-      sorting: sort && [{ id: sort as string, desc: order === 'desc' }],
-      columnFilters,
-      pagination: {
-        pageIndex: Number(page) - 1 || INITIAL_PAGE_INDEX,
-        pageSize: Number(limit) || INITIAL_PAGE_SIZE
-      }
-    }
-    return state
-  }
-
-  const _handleParamsUpdate = (params: QueryParams) => {
-    const query = getQueryParams()
-    updateQueryParams(params)
-    fetchData({ ...query, ...params })
-  }
-
-  const fetchData = async (params: QueryParams) => {
-    if (params) {
-      setLoading(true)
-      const data = await getUsers({ ...DEFAULT_QUERY_PARAMS, ...params })
-      setLoading(false)
-      setData(data.results)
-      setDataLength(data.count)
-    }
-  }
-
-  // Set inital state on page load
-  useEffect(() => {
-    const query = getQueryParams() as QueryParams
-    setInitialState(_handleParamsToState(query))
-  }, [])
-
-  // Fetch data on page load
-  useEffect(() => {
-    const query = getQueryParams() as QueryParams
-    fetchData(query)
-  }, [])
-
-  if (!initialState || !active) return null
-
-  return (
-    <Table
-      loading={loading}
-      data={data}
-      rowsCount={dataLength}
-      pageCount={Math.ceil(data?.length / (initialState?.pagination?.pageSize || INITIAL_PAGE_SIZE))}
-      initialState={initialState}
-      onParamsUpdate={_handleParamsUpdate}
     />
   )
 }

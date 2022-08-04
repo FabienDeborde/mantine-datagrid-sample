@@ -26,3 +26,14 @@ export const updateQueryParams = (queryParams: Params|Params[]) => {
   const newRelativeQueryPath = `${location.pathname}${queryString.startsWith('?') ? '' : '?'}${queryString}`
   history.pushState(null, '', newRelativeQueryPath)
 }
+export const overwriteQueryParams = (queryParams: Params|Params[]) => {
+  const queryString = qs.stringify(queryParams, {
+    encodeValuesOnly: true,
+    skipNulls: true,
+    allowDots: true
+  })
+  // console.log('new params', queryString)
+
+  const newRelativeQueryPath = `${location.pathname}${queryString.startsWith('?') ? '' : '?'}${queryString}`
+  history.pushState(null, '', newRelativeQueryPath)
+}

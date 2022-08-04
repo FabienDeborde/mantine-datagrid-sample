@@ -16,8 +16,10 @@ export const getUsers = (params: QueryParams): Promise<UserResponse> => {
 
     if (fields) {
       for (const field of fields) {
-        const { key, op, val, meta } = field
-        query.where(key, op, val)
+        const { key, op, val } = field
+        let operator = op
+        if (op === 'in') operator = 'contains'
+        query.where(key, operator, val)
       }
     }
 
@@ -35,11 +37,17 @@ export const getUsers = (params: QueryParams): Promise<UserResponse> => {
       results = [...paginated]
     }
 
+    console.info('fetched data', {
+      params,
+      results,
+      count
+    })
+
     setTimeout(() => {
       resolve({
         results,
         count
       })
-    }, 300)
+    }, 1000)
   })
 }

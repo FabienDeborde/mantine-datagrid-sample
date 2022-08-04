@@ -2,7 +2,7 @@ import { Select } from '@mantine/core'
 import {
   DataGridFilterFn,
   DataGridFilterProps
-} from 'mantine-datagrid'
+} from '@fabiendeborde/mantine-datagrid'
 import { User } from '../types'
 
 type Filter = {
