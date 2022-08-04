@@ -35,10 +35,10 @@ export default function Main () {
         <Tabs.Tab value="dynamic" icon={<AccessPoint size={14} />}>Dynamic</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="static" pt="sm">
-        <StaticTable active={activeTab === 'static'} />
+        { activeTab === 'static' && <StaticTable /> }
       </Tabs.Panel>
       <Tabs.Panel value="dynamic" pt="sm">
-        <DynamicTable active={activeTab === 'dynamic'} />
+        { activeTab === 'dynamic' && <DynamicTable /> }
       </Tabs.Panel>
     </Tabs>
   )
