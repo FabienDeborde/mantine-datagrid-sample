@@ -13,10 +13,10 @@ import {
   SortingState,
   PaginationState,
   FilterState,
-  InitialGridState
-} from 'mantine-datagrid'
+  GridState
+} from '@fabiendeborde/mantine-datagrid'
 
-import { QueryParams, TabProps, User } from './types'
+import { QueryParams, User } from './types'
 import { genderFilterFn } from './filters'
 import { getQueryParams, updateQueryParams } from '../utils'
 
@@ -29,18 +29,18 @@ const DEFAULT_QUERY_PARAMS = {
   limit: String(INITIAL_PAGE_SIZE)
 }
 
-export default function DynamicTable ({ active }: TabProps) {
+export default function DynamicTable () {
   const containerRef = useRef<HTMLDivElement>(null)
   const paginationRef = useRef<HTMLDivElement>(null)
   const [tableHeight, setTableHeight] = useState(0)
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState([])
   const [dataLength, setDataLength] = useState(0)
-  const [pagination, setPagination] = useState()
-  const [filters, setFilters] = useState()
-  const [sort, setSort] = useState()
+  const [pagination, setPagination] = useState<PaginationState>()
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>()
+  const [sorting, setSorting] = useState<SortingState>()
 
-  const _handleParamsToState = (params: QueryParams): InitialGridState => {
+  const _handleParamsToState = (params: QueryParams): GridState => {
     const { fields, sort, order, page, limit } = params
 
     const pageIndex = Number(page) ? Number(page) - 1 : 0
@@ -95,31 +95,15 @@ export default function DynamicTable ({ active }: TabProps) {
     }
   }
 
-  // Set inital state on page load & if active tab
+  // Set inital state on page load & fetch data
   useEffect(() => {
-    if (active) {
-      const query = getQueryParams() as QueryParams
-      // setInitialState(_handleParamsToState(query))
-    }
-  }, [active])
-
-  // Fetch data on page load & if active tab
-  useEffect(() => {
-    if (active) {
-      const query = getQueryParams() as QueryParams
-      fetchData(query)
-    }
-  }, [active])
-
-  // Reset state on tab inactive
-  useEffect(() => {
-    if (!active) {
-      setLoading(true)
-      setData([])
-      setDataLength(0)
-      // setInitialState(null)
-    }
-  }, [active])
+    const query = getQueryParams() as QueryParams
+    const state = _handleParamsToState(query)
+    setPagination(state.pagination)
+    setColumnFilters(state.columnFilters)
+    setSorting(state.sorting)
+    fetchData(query)
+  }, [])
 
   // Set table height
   useLayoutEffect(() => {
@@ -149,12 +133,6 @@ export default function DynamicTable ({ active }: TabProps) {
       }, 100)
     }
   }, [containerRef, paginationRef])
-
-  useEffect(() => {
-    console.info('data', data, data.length)
-  }, [data])
-
-  if (!active) return null
 
   const columnHelper = createColumnHelper<User>()
   const columns: ColumnDef<User>[] = [
@@ -228,10 +206,10 @@ export default function DynamicTable ({ active }: TabProps) {
     // console.log('clicked row', row)
   }
   const onRowSelection = (selection: RowSelectionState) => {
-    console.log('selected rows', selection)
+    // console.log('selected rows', selection)
   }
-
   const onColumnFilterChange = (filters: ColumnFiltersState) => {
+    setColumnFilters(filters)
     const fields = []
     if (filters) {
       for (let index = 0; index < filters.length; index++) {
@@ -248,6 +226,7 @@ export default function DynamicTable ({ active }: TabProps) {
     }
   }
   const onSortingChange = (sort: SortingState) => {
+    setSorting(sort)
     if (sort?.[0]) {
       const { id, desc } = sort[0]
       _handleParamsUpdate({
@@ -261,24 +240,22 @@ export default function DynamicTable ({ active }: TabProps) {
       })
     }
   }
-  const onPaginationChange = (pagination: PaginationState) => {
-    const { pageIndex, pageSize } = pagination
-    console.debug('pagination change', pagination)
+  const onPaginationChange = (state: PaginationState) => {
+    const { pageIndex, pageSize } = state
 
-    // onParamsUpdate({
-    //   page: String(pageIndex + 1),
-    //   limit: String(pageSize)
-    // })
+    if (pagination.pageIndex !== pageIndex || pagination.pageSize !== pageSize) {
+      const nextPagination = {
+        pageIndex: pageSize !== pagination.pageSize ? 0 : pageIndex,
+        pageSize
+      }
+      setPagination(nextPagination)
+
+      _handleParamsUpdate({
+        page: String(pageSize !== pagination.pageSize ? 1 : pageIndex + 1),
+        limit: String(pageSize)
+      })
+    }
   }
-
-  // const paginationOptions = {
-  //   initialPageIndex: initialState?.pagination?.pageIndex || INITIAL_PAGE_INDEX,
-  //   initialPageSize: initialState?.pagination?.pageSize || INITIAL_PAGE_SIZE,
-  //   pageSizes: ['10', '25', '50', '100', '250', '1000'],
-  //   position: 'right' as GroupPosition,
-  //   rowsCount: dataLength,
-  //   pageCount: Math.ceil(data?.length / (initialState?.pagination?.pageSize || INITIAL_PAGE_SIZE))
-  // }
 
   return (
     <Datagrid<User>
@@ -286,7 +263,11 @@ export default function DynamicTable ({ active }: TabProps) {
       debug={false}
       columns={columns}
       data={data}
-      // initialGridState={initialState} // TODO: refactor here
+      gridState={{
+        pagination,
+        columnFilters,
+        sorting
+      }}
       onRowClick={onRowClick}
       containerStyle={{}}
       containerRef={containerRef}
@@ -298,17 +279,19 @@ export default function DynamicTable ({ active }: TabProps) {
         initialPageIndex: 0,
         initialPageSize: 10,
         pageSizes: ['10', '25', '50', '100', '250', '1000'],
-        position: 'right'
-      }} // TODO: refactor here
+        position: 'right',
+        rowsCount: dataLength,
+        pageCount: Math.ceil(dataLength / (pagination?.pageSize || INITIAL_PAGE_SIZE))
+      }}
       paginationRef={paginationRef}
       withGlobalFilter
       withRowSelection
       onRowSelection={onRowSelection}
       // withVirtualizedRows
       // virtualizedRowOverscan={25}
-      // onColumnFilterChange={onColumnFilterChange}
-      // onSortingChange={onSortingChange}
-      // onPaginationChange={onPaginationChange}
+      onColumnFilterChange={onColumnFilterChange}
+      onSortingChange={onSortingChange}
+      onPaginationChange={onPaginationChange}
     />
   )
 }
