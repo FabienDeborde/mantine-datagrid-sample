@@ -5,6 +5,7 @@
   "dependencies": {
     "@emotion/react": "^11.9.3",
     "@emotion/server": "^11.4.0",
+    "@fabiendeborde/mantine-datagrid": "^0.1.4",
     "@mantine/core": "^5.0.0",
     "@mantine/dates": "^5.0.0",
     "@mantine/hooks": "^5.0.0",
