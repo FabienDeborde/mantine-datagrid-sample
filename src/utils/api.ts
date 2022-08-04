@@ -17,7 +17,9 @@ export const getUsers = (params: QueryParams): Promise<UserResponse> => {
     if (fields) {
       for (const field of fields) {
         const { key, op, val } = field
-        query.where(key, op, val)
+        let operator = op
+        if (op === 'in') operator = 'contains'
+        query.where(key, operator, val)
       }
     }
 
