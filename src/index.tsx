@@ -1,7 +1,10 @@
-import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import reportWebVitals from './reportWebVitals'
+
+import { initializeConsole } from './utils/console'
+
+initializeConsole()
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

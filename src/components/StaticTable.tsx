@@ -9,7 +9,7 @@ import {
   stringFilterFn,
   booleanFilterFn,
   dateFilterFn
-} from 'mantine-datagrid'
+} from '@fabiendeborde/mantine-datagrid'
 
 import { User } from './types'
 import { genderFilterFn } from './filters'
