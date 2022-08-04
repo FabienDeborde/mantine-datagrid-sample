@@ -9,14 +9,14 @@ import {
   stringFilterFn,
   booleanFilterFn,
   dateFilterFn
-} from 'mantine-datagrid'
+} from '@fabiendeborde/mantine-datagrid'
 
-import { TabProps, User } from './types'
+import { User } from './types'
 import { genderFilterFn } from './filters'
 
 import data from '../mock/data.json'
 
-export default function StaticTable ({ active }: TabProps) {
+export default function StaticTable () {
   const containerRef = useRef<HTMLDivElement>(null)
   const paginationRef = useRef<HTMLDivElement>(null)
   const [tableHeight, setTableHeight] = useState(0)
@@ -48,8 +48,6 @@ export default function StaticTable ({ active }: TabProps) {
       setTableHeight(height)
     }
   }, [paginationRef])
-
-  if (!active) return null
 
   const columns: ColumnDef<User>[] = [
     columnHelper.display({
