@@ -1281,10 +1281,10 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@fabiendeborde/mantine-datagrid@^0.1.5":
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/@fabiendeborde/mantine-datagrid/-/mantine-datagrid-0.1.5.tgz#b9b9a49e4f284fc9854a9604a036fbde0938e4c9"
-  integrity sha512-Ox4apuPeSDaAuMr2boP0FLSpgFJ1PDrdzfnCHd1JJHx3tCplVFqITi0x23nnVbdAL5x2l+bPd7x+phooP6NdJA==
+"@fabiendeborde/mantine-datagrid@^0.1.6":
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/@fabiendeborde/mantine-datagrid/-/mantine-datagrid-0.1.6.tgz#9bd39f0d79c53ee756c7d42eb147ffbe8e1f8f90"
+  integrity sha512-fVQLDzK0uxLK21w1Jcb8RqbX0nJDlK7ghxwHdT5a0OnqWCV9DLVTc1V510/wIMeDmx+B63ed7y5UEuy9UKatGA==
   dependencies:
     "@tanstack/react-table" "8.5.2"
     dayjs "^1.11.4"
